@@ -18,7 +18,7 @@ Following are some of its key features:
 * Supported databases: PostgreSQL
 * Requires Java 11 and has no external dependencies (~60kB in size)
 
-**Documentation:** Latest javadocs is available [here](https://pustike.github.io/pustike-persist/docs/api/).
+**Documentation:** Latest javadocs is available [here](https://pustike.github.io/pustike-persist/docs/latest/api/).
 
 **Todo:**
 
