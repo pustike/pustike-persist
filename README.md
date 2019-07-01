@@ -25,7 +25,7 @@ Following are some of its key features:
 * Write unit tests
 * More detailed documentation
 * Override field name when using field@fgName instead of adding both
-* Finder API - add fetch(String fgName) as a method to reduce to overloaded fetch methods
+* Finder API - add fetch(String fgName) as a method to reduce the number of overloaded fetch methods
 * MappingTool - create ForeignKey column based on the type of @Id column
 * MappingTool - if existing field metadata is changed, compare with database and show warnings 
 * Add support for Composite primary key

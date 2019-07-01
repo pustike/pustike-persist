@@ -15,7 +15,11 @@
  */
 package io.github.pustike.persist.sql;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Objects;
 
@@ -25,6 +29,7 @@ import io.github.pustike.persist.metadata.Schema;
  * The query object, created by the repository, which can be used to insert, update, delete, select, find data.
  */
 public final class SqlQuery {
+    private static final Logger logger = System.getLogger(SqlQuery.class.getName());
     private final Connection connection;
     private final Schema schema;
     private int counter = 0;
@@ -34,6 +39,10 @@ public final class SqlQuery {
         this.schema = schema;
     }
 
+    /**
+     * Get the connection instance created for this transaction.
+     * @return the database connection
+     */
     Connection getConnection() {
         return connection;
     }
@@ -263,5 +272,23 @@ public final class SqlQuery {
      */
     public <E> Finder<E> find(Class<E> entityClass, String alias) {
         return new Finder<>(this, entityClass, alias);
+    }
+
+    /**
+     * Execute a prepared statement with the given queryString and parameters.
+     * @param queryString the sql query to execute
+     * @param parameters an array of parameters in the order
+     * @return the updated row count
+     */
+    public int executeUpdate(String queryString, Object... parameters) {
+        logger.log(Level.INFO, queryString);
+        try (PreparedStatement stmt = connection.prepareStatement(queryString)) {
+            for (int i = 0; i < parameters.length; i++) {
+                stmt.setObject(i + 1, parameters[i]);
+            }
+            return stmt.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Couldn't execute query", e);
+        }
     }
 }

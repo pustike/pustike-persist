@@ -15,11 +15,8 @@
  */
 package io.github.pustike.persist.sql;
 
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -43,13 +40,10 @@ import io.github.pustike.persist.utils.PersistUtils;
  * Map the object based schema definition to database by creating the schema, tables, etc.
  */
 public final class MappingTool {
-    private static final Logger logger = System.getLogger(MappingTool.class.getName());
-    private final Schema schema;
-    private final Connection connection;
+    private final SqlQuery sqlQuery;
 
-    private MappingTool(Schema schema, Connection connection) {
-        this.schema = schema;
-        this.connection = connection;
+    private MappingTool(SqlQuery sqlQuery) {
+        this.sqlQuery = sqlQuery;
     }
 
     /**
@@ -57,9 +51,9 @@ public final class MappingTool {
      * @param sqlQuery the sql query instance
      */
     public static void create(SqlQuery sqlQuery) {
-        Connection connection = sqlQuery.getConnection();
-        MappingTool mappingTool = new MappingTool(sqlQuery.getSchema(), connection);
+        MappingTool mappingTool = new MappingTool(sqlQuery);
         try {
+            Connection connection = sqlQuery.getConnection();
             DatabaseMetaData dbMetaData = connection.getMetaData();
             mappingTool.createSchema(dbMetaData);
             mappingTool.createTables(dbMetaData);
@@ -69,18 +63,19 @@ public final class MappingTool {
     }
 
     private void createSchema(DatabaseMetaData dbMetaData) throws SQLException {
-        String schemaName = schema.getName();
+        String schemaName = sqlQuery.getSchema().getName();
         if (schemaName == null) {
             return;
         }
         try (ResultSet schemas = dbMetaData.getSchemas(null, schemaName)) {
             if (!schemas.next()) {
-                executeUpdate("create schema if not exists " + schemaName);
+                sqlQuery.executeUpdate("create schema if not exists " + schemaName);
             }
         }
     }
 
     private void createTables(DatabaseMetaData dbMetaData) throws SQLException {
+        Schema schema = sqlQuery.getSchema();
         Map<String, Map<String, String[]>> schemaTableInfo = new LinkedHashMap<>();
         final String[] columnKeys = {"TABLE_NAME", "COLUMN_NAME", "DATA_TYPE", "TYPE_NAME",
             "COLUMN_SIZE", "DECIMAL_DIGITS", "IS_NULLABLE"};
@@ -105,7 +100,7 @@ public final class MappingTool {
             Collection<FieldData> fieldDataList = entityData.getFieldData();
             Map<String, String[]> tableInfo = schemaTableInfo.get(tableName);
             if (tableInfo == null) {// table is not present!
-                createTable(entityData, fieldDataList);
+                createTable(schema, entityData, fieldDataList);
             } else {
                 List<FieldData> missingFieldDataList = new ArrayList<>();
                 for (FieldData fieldData : fieldDataList) {
@@ -116,10 +111,10 @@ public final class MappingTool {
                     }
                 }
                 if (!missingFieldDataList.isEmpty()) {
-                    alterTable(entityData, missingFieldDataList);
+                    alterTable(schema, entityData, missingFieldDataList);
                 }
             }
-            createIndexes(dbMetaData, entityData, fieldDataList);
+            createIndexes(schema, dbMetaData, entityData, fieldDataList);
             for (FieldData fmd : fieldDataList) {
                 if (fmd.getColumnType() == ColumnType.ForeignKey) {
                     String fkName = tableName + "_" + fmd.getColumnName() + "_fkey";
@@ -147,32 +142,32 @@ public final class MappingTool {
         }
         for (ForeignKey fk : foreignKeyList) {
             if (!existingForeignKeyMap.containsKey(fk.getName())) { // create foreign keys
-                String queryBuilder = "ALTER TABLE " + toSchemaTableName(fk.getTableName())
+                String queryBuilder = "ALTER TABLE " + toSchemaTableName(schema, fk.getTableName())
                     + " ADD CONSTRAINT " + fk.getName() + " FOREIGN KEY (" + fk.getColumnName()
-                    + ") REFERENCES " + toSchemaTableName(fk.getTargetTable())
+                    + ") REFERENCES " + toSchemaTableName(schema, fk.getTargetTable())
                     + " (" + fk.getTargetColumn() + ") DEFERRABLE INITIALLY DEFERRED";
-                executeUpdate(queryBuilder);
+                sqlQuery.executeUpdate(queryBuilder);
             }
         }
     }
 
-    private void createTable(EntityData entityData, Collection<FieldData> fieldDataList) {
+    private void createTable(Schema schema, EntityData entityData, Collection<FieldData> fieldDataList) {
         StringBuilder queryBuilder = new StringBuilder("CREATE TABLE ").append(schema.toSchemaTableName(entityData));
         queryBuilder.append(" (").append(fieldDataList.stream().map(FieldData::getColumnDefinition)
             .collect(Collectors.joining(", "))).append(')');
-        executeUpdate(queryBuilder.toString());
+        sqlQuery.executeUpdate(queryBuilder.toString());
     }
 
-    private void alterTable(EntityData entityData, List<FieldData> fieldDataList) {
+    private void alterTable(Schema schema, EntityData entityData, List<FieldData> fieldDataList) {
         StringBuilder queryBuilder = new StringBuilder("ALTER TABLE ").append(schema.toSchemaTableName(entityData));
         for (FieldData fieldData : fieldDataList) {
             queryBuilder.append(" ADD COLUMN ").append(fieldData.getColumnDefinition()).append(',');
         }
         queryBuilder.setLength(queryBuilder.length() - 1);
-        executeUpdate(queryBuilder.toString());
+        sqlQuery.executeUpdate(queryBuilder.toString());
     }
 
-    private void createIndexes(DatabaseMetaData dbMetaData, EntityData entityData,
+    private void createIndexes(Schema schema, DatabaseMetaData dbMetaData, EntityData entityData,
         Collection<FieldData> fieldDataList) throws SQLException {
         String tableName = entityData.getTableName();
         Map<String, IndexInfo> entityIndexInfoMap = new HashMap<>();
@@ -228,19 +223,19 @@ public final class MappingTool {
             if (!indexInfoMap.containsKey(indexName)) {
                 IndexInfo indexInfo = mapEntry.getValue();
                 if (indexInfo.isUnique()) {
-                    String queryString = "ALTER TABLE " + toSchemaTableName(tableName) + " ADD CONSTRAINT "
+                    String queryString = "ALTER TABLE " + toSchemaTableName(schema, tableName) + " ADD CONSTRAINT "
                         + indexName + " UNIQUE (" + String.join(", ", indexInfo.getColumns()) + ')';
-                    executeUpdate(queryString);
+                    sqlQuery.executeUpdate(queryString);
                 } else {
-                    String queryString = "CREATE INDEX " + indexName + " ON " + toSchemaTableName(tableName)
+                    String queryString = "CREATE INDEX " + indexName + " ON " + toSchemaTableName(schema, tableName)
                         + " (" + String.join(", ", indexInfo.getColumns()) + ')';
-                    executeUpdate(queryString);
+                    sqlQuery.executeUpdate(queryString);
                 }
             }
         }
     }
 
-    private String toSchemaTableName(String tableName) {
+    private String toSchemaTableName(Schema schema, String tableName) {
         String schemaName = schema.getName();
         return schemaName == null ? tableName : schemaName + '.' + tableName;
     }
@@ -252,14 +247,5 @@ public final class MappingTool {
             name = PersistUtils.hashCodeToString(hashCode) + (unique ? "_key" : "_idx"); // _key for unique
         }
         return tableName + "_" + name;
-    }
-
-    private void executeUpdate(String queryString) {
-        logger.log(Level.INFO, queryString);
-        try (PreparedStatement stmt = connection.prepareStatement(queryString)) {
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-            throw new RuntimeException("Couldn't execute query", e);
-        }
     }
 }

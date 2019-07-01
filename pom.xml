@@ -21,19 +21,19 @@
     <parent>
         <groupId>io.github.pustike</groupId>
         <artifactId>pustike-maven-parent</artifactId>
-        <version>0.1.1</version>
+        <version>0.1.2</version>
     </parent>
 
     <artifactId>pustike-persist</artifactId>
-    <version>0.9.0</version>
+    <version>0.9.1</version>
 
     <name>Pustike Persist</name>
     <description>An object based persistence library</description>
     <url>https://github.com/pustike/pustike-persist</url>
 
     <properties>
-        <hikaricp.version>3.3.0</hikaricp.version>
-        <postgresql.version>42.2.5</postgresql.version>
+        <hikaricp.version>3.3.1</hikaricp.version>
+        <postgresql.version>42.2.6</postgresql.version>
     </properties>
     <dependencies>
         <dependency>

@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 
 import io.github.pustike.persist.metadata.ColumnType;
 import io.github.pustike.persist.metadata.EntityData;
@@ -560,18 +561,33 @@ public final class Finder<E> {
      * @return the single result from the query
      */
     public <T> T fetchSingleResult(String selectClause) {
-        List<T> resultDataList = doFetchResults(null, selectClause, -1, 1, null);
+        List<T> resultDataList = doFetchResults(null, selectClause, -1, 1, null, null);
+        return resultDataList.isEmpty() ? null : resultDataList.get(0);
+    }
+
+    /**
+     * Fetch the aggregate query result data.
+     * @param selectClause the select clause to apply
+     * @param queryModifier the function to be called before the query is executed
+     * @param <T> the type of result data
+     * @return the single result from the query
+     */
+    public <T> T fetchSingleResult(String selectClause, Function<String, String> queryModifier) {
+        List<T> resultDataList = doFetchResults(null, selectClause, -1, -1, null, queryModifier);
         return resultDataList.isEmpty() ? null : resultDataList.get(0);
     }
 
     @SuppressWarnings("unchecked")
     private <T> List<T> doFetchResults(Class<T> resultType, String selectClause, int offset, int limit,
-        Map<Integer, Class<?>> columnDataTypes) {
+        Map<Integer, Class<?>> columnDataTypes, Function<String, String> queryModifier) {
         Class<T> dataType = resultType != null && resultType.isArray()
             ? (Class<T>) resultType.getComponentType() : resultType;
         String offsetLimit = (offset > 0 ? " offset " + offset : "") + (limit > 0 ? " limit " + limit : "");
         String queryString = toString("select ", toSqlString(selectClause), getFromClause(),
             joinClause, whereClause, groupBy, orderBy, offsetLimit);
+        if (queryModifier != null) {
+            queryString = queryModifier.apply(queryString);
+        }
         logger.log(Level.INFO, queryString);
         try (PreparedStatement stmt = sqlQuery.getConnection().prepareStatement(queryString)) {
             setParameters(stmt);
@@ -634,7 +650,7 @@ public final class Finder<E> {
      * @return the single result from the query
      */
     public <T> T fetchSingleResult(Class<T> resultType, String selectClause) {
-        List<T> resultDataList = doFetchResults(resultType, selectClause, -1, 1, null);
+        List<T> resultDataList = doFetchResults(resultType, selectClause, -1, 1, null, null);
         return resultDataList.isEmpty() ? null : resultDataList.get(0);
     }
 
@@ -647,7 +663,7 @@ public final class Finder<E> {
      * @return the list of data
      */
     public <T> List<T> fetchResults(String selectClause, int offset, int limit) {
-        return doFetchResults(null, selectClause, offset, limit, null);
+        return doFetchResults(null, selectClause, offset, limit, null, null);
     }
 
     /**
@@ -660,7 +676,7 @@ public final class Finder<E> {
      * @return the list of data
      */
     public <T> List<T> fetchResults(Class<T> resultType, String selectClause, int offset, int limit) {
-        return doFetchResults(resultType, selectClause, offset, limit, null);
+        return doFetchResults(resultType, selectClause, offset, limit, null, null);
     }
 
     /**
@@ -673,7 +689,7 @@ public final class Finder<E> {
      * @return the list of data
      */
     public <T> List<T> fetchResults(String selectClause, int offset, int limit, Map<Integer, Class<?>> columnDataTypes) {
-        return doFetchResults(null, selectClause, offset, limit, columnDataTypes);
+        return doFetchResults(null, selectClause, offset, limit, columnDataTypes, null);
     }
 
     /**
