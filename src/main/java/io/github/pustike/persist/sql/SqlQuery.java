@@ -19,8 +19,12 @@ import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import io.github.pustike.persist.metadata.Schema;
@@ -278,13 +282,62 @@ public final class SqlQuery {
      * Execute a prepared statement with the given queryString and parameters.
      * @param queryString the sql query to execute
      * @param parameters an array of parameters in the order
+     * @return the list of resultSet objects
+     */
+    public List<?> executeQuery(String queryString, Object... parameters) {
+        return executeQuery(queryString, null, parameters);
+    }
+
+    /**
+     * Execute a prepared statement with the given queryString and parameters.
+     * @param queryString the sql query to execute
+     * @param columnDataTypes data type to use per column
+     * @param parameters an array of parameters in the order
+     * @return the list of resultSet objects
+     */
+    public List<?> executeQuery(String queryString, Map<Integer, Class<?>> columnDataTypes, Object... parameters) {
+        logger.log(Level.INFO, queryString);
+        try (PreparedStatement stmt = connection.prepareStatement(queryString)) {
+            if (parameters != null) {
+                for (int i = 0; i < parameters.length; i++) {
+                    stmt.setObject(i + 1, parameters[i]);
+                }
+            }
+            try (ResultSet resultSet = stmt.executeQuery()) {
+                List<Object> resultDataList = new ArrayList<>();
+                int columnCount = resultSet.getMetaData().getColumnCount();
+                while (resultSet.next()) {
+                    if (columnCount == 1) {
+                        resultDataList.add(columnDataTypes == null ? resultSet.getObject(1)
+                            : resultSet.getObject(1, columnDataTypes.get(1)));
+                    } else {
+                        Object[] resultData = new Object[columnCount];
+                        for (int i = 0; i < columnCount; i++) {
+                            resultData[i] = columnDataTypes == null ? resultSet.getObject(i + 1)
+                                : resultSet.getObject(i + 1, columnDataTypes.get(i + 1));
+                        }
+                        resultDataList.add(resultData);
+                    }
+                }
+                return Collections.unmodifiableList(resultDataList);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Couldn't execute query", e);
+        }
+    }
+    /**
+     * Execute a prepared statement with the given queryString and parameters.
+     * @param queryString the sql query to execute
+     * @param parameters an array of parameters in the order
      * @return the updated row count
      */
     public int executeUpdate(String queryString, Object... parameters) {
         logger.log(Level.INFO, queryString);
         try (PreparedStatement stmt = connection.prepareStatement(queryString)) {
-            for (int i = 0; i < parameters.length; i++) {
-                stmt.setObject(i + 1, parameters[i]);
+            if (parameters != null) {
+                for (int i = 0; i < parameters.length; i++) {
+                    stmt.setObject(i + 1, parameters[i]);
+                }
             }
             return stmt.executeUpdate();
         } catch (SQLException e) {

@@ -24,7 +24,6 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -141,7 +140,7 @@ public final class Finder<E> {
      */
     public Finder<E> where(String queryString, Object... parameters) {
         if (parameters != null && parameters.length > 0) {
-            parameterList.addAll(Arrays.asList(parameters));
+            parameterList.addAll(List.of(parameters));
         }
         if (queryString != null && !queryString.isEmpty()) {
             getWhereClause().append(toSqlString(queryString));
@@ -211,7 +210,7 @@ public final class Finder<E> {
         if (parameters == null || parameters.length == 0) {
             throw new IllegalArgumentException("IN parameters can not be empty!");
         }
-        return whereIn(queryString, Arrays.asList(parameters));
+        return whereIn(queryString, List.of(parameters));
     }
 
     /**

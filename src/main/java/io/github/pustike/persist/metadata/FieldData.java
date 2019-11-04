@@ -23,7 +23,6 @@ import java.sql.Types;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -34,10 +33,10 @@ import io.github.pustike.persist.utils.PersistUtils;
  * The field metadata within an entity.
  */
 public final class FieldData {
-    private static final List<Class<?>> idClassList = Arrays.asList(Short.class, Integer.class, Long.class);// UUID?
-    private static final List<Class<?>> versionClassList = Arrays.asList(Short.class, Integer.class, Long.class);
-    private static final List<Class<?>> lobClassList = Arrays.asList(byte[].class, Byte[].class, String.class);
-    private static final List<Class<?>> defaultClassList = Arrays.asList(Boolean.class, Byte.class, Character.class,
+    private static final List<Class<?>> idClassList = List.of(Short.class, Integer.class, Long.class);// UUID?
+    private static final List<Class<?>> versionClassList = List.of(Short.class, Integer.class, Long.class);
+    private static final List<Class<?>> lobClassList = List.of(byte[].class, Byte[].class, String.class);
+    private static final List<Class<?>> defaultClassList = List.of(Boolean.class, Byte.class, Character.class,
         Short.class, Integer.class, Long.class, Float.class, Double.class, BigInteger.class, BigDecimal.class,
         LocalDate.class, LocalTime.class, LocalDateTime.class, String.class);
     private final Field field;

@@ -16,7 +16,6 @@
 package io.github.pustike.persist.metadata;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -209,7 +208,7 @@ public final class EntityData {
                 }
                 fieldNames.addAll(includeFieldNames);
             }
-            fieldNames.addAll(Arrays.asList(fieldGroup.fields()));
+            fieldNames.addAll(List.of(fieldGroup.fields()));
             fieldGroupData.put(fieldGroup.name(), Collections.unmodifiableSet(fieldNames));
         }
     }

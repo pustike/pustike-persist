@@ -43,6 +43,14 @@ public final class Repository {
     }
 
     /**
+     * Get the data source of this repository.
+     * @return the data source
+     */
+    public DataSource getDataSource() {
+        return dataSource;
+    }
+
+    /**
      * Get the configured entity schema metadata instance.
      * @return the schema metadata
      */

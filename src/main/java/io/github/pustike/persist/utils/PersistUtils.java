@@ -15,14 +15,16 @@
  */
 package io.github.pustike.persist.utils;
 
+import java.util.Map;
 import java.util.Objects;
 
 /**
  * Common Utilities.
  */
 public final class PersistUtils {
-    private static final Class[] wrappers = {Integer.class, Double.class, Byte.class, Boolean.class,
-        Character.class, Void.class, Short.class, Float.class, Long.class};
+    private static final Map<Class<?>, Class<?>> primitiveToWrapperMap = Map.of(boolean.class, Boolean.class,
+        byte.class, Byte.class, char.class, Character.class, double.class, Double.class, float.class, Float.class,
+        int.class, Integer.class, long.class, Long.class, short.class, Short.class, void.class, Void.class);
     private static final char[] lowerCaseLetters = new char[26];
 
     static {
@@ -37,20 +39,12 @@ public final class PersistUtils {
 
     /**
      * Get the corresponding wrapper class for the given primitive class.
-     * Source: <a href="https://github.com/melezov/runtime-bytegen/blob/master/src/main/java/org/revenj/Primitives.java"
-     * target="_blank">Primitives.java</a>
      * @param clazz the primitive class
      * @return the corresponding wrapper class if primitive, else the same input parameter
      */
     public static Class<?> getWrapperClass(Class<?> clazz) {
         Objects.requireNonNull(clazz);
-        if (!clazz.isPrimitive()) {
-            return clazz;
-        }
-        final String name = clazz.getName();
-        final int c0 = name.charAt(0), c2 = name.charAt(2);
-        final int mapper = (c0 + c0 + c0 + 5) & (118 - c2);
-        return (Class<?>) wrappers[mapper];
+        return clazz.isPrimitive() ? primitiveToWrapperMap.get(clazz) : clazz;
     }
 
     /**

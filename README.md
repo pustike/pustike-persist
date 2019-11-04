@@ -18,7 +18,7 @@ Following are some of its key features:
 * Supported databases: PostgreSQL
 * Requires Java 11 and has no external dependencies (~60kB in size)
 
-**Documentation:** Latest javadocs is available [here](https://pustike.github.io/pustike-persist/docs/latest/api/).
+**Documentation:** Latest javadocs is available [here][Javadocs].
 
 **Todo:**
 
@@ -39,13 +39,13 @@ To add a dependency using Maven, use the following:
 <dependency>
     <groupId>io.github.pustike</groupId>
     <artifactId>pustike-persist</artifactId>
-    <version>0.9.0</version>
+    <version>0.9.2</version>
 </dependency>
 ```
 To add a dependency using Gradle:
 ```
 dependencies {
-    compile 'io.github.pustike:pustike-persist:0.9.0'
+    compile 'io.github.pustike:pustike-persist:0.9.2'
 }
 ```
 Or, download the [latest JAR](https://search.maven.org/remote_content?g=io.github.pustike&a=pustike-persist&v=LATEST)
