@@ -23,15 +23,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
 
 import io.github.pustike.persist.metadata.ColumnType;
@@ -47,11 +39,11 @@ public final class Finder<E> {
     private static final Logger logger = System.getLogger(Finder.class.getName());
     private final SqlQuery sqlQuery;
     private final String alias;
-    private Map<String, EntityData> aliasEntityDataMap;
-    private Map<String, String> joinAliasMap;
+    private final Map<String, EntityData> aliasEntityDataMap;
+    private final Map<String, String> joinAliasMap;
     private StringBuilder joinClause, whereClause;
     private String groupBy, orderBy;
-    private List<Object> parameterList;
+    private final List<Object> parameterList;
 
     Finder(SqlQuery sqlQuery, Class<E> entityClass, String alias) {
         this.sqlQuery = sqlQuery;
@@ -224,8 +216,7 @@ public final class Finder<E> {
             throw new IllegalArgumentException("IN parameters can not be empty!");
         }
         StringBuilder inClause = new StringBuilder(toSqlString(queryString)).append('(');
-        valueList.forEach(o -> inClause.append("?,"));
-        inClause.setLength(inClause.length() - 1);
+        inClause.append("?,".repeat(valueList.size())).setLength(inClause.length() - 1);
         getWhereClause().append(inClause.append(')'));
         parameterList.addAll(valueList);
         return this;

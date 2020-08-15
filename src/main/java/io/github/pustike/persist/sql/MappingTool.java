@@ -19,12 +19,7 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import io.github.pustike.persist.Index;
@@ -128,27 +123,24 @@ public final class MappingTool {
                 }
             }
         }
-        Map<String, ForeignKey> existingForeignKeyMap = new HashMap<>();
+        createForeignKeys(dbMetaData, schema, foreignKeyList);
+    }
+
+    private void createForeignKeys(DatabaseMetaData dbMetaData, Schema schema, List<ForeignKey> foreignKeyList)
+            throws SQLException {
+        Set<String> existingFkNames = new HashSet<>();
         try (ResultSet rs = dbMetaData.getExportedKeys(null, schema.getName(), null)) {
             while (rs.next()) {
-                String fkName = rs.getString("FK_NAME");
-                String fkTableName = rs.getString("FKTABLE_NAME");
-                String fkColumnName = rs.getString("FKCOLUMN_NAME");
-                String pkTableName = rs.getString("PKTABLE_NAME");
-                String pkColumnName = rs.getString("PKCOLUMN_NAME");
-                existingForeignKeyMap.put(fkName, new ForeignKey(fkName, fkTableName, fkColumnName,
-                    pkTableName, pkColumnName));
+                existingFkNames.add(new ForeignKey(rs).getName());
             }
         }
-        for (ForeignKey fk : foreignKeyList) {
-            if (!existingForeignKeyMap.containsKey(fk.getName())) { // create foreign keys
-                String queryBuilder = "ALTER TABLE " + toSchemaTableName(schema, fk.getTableName())
+        foreignKeyList.stream().filter(fk -> !existingFkNames.contains(fk.getName())).forEach(fk -> {
+            String queryBuilder = "ALTER TABLE " + toSchemaTableName(schema, fk.getTableName())
                     + " ADD CONSTRAINT " + fk.getName() + " FOREIGN KEY (" + fk.getColumnName()
                     + ") REFERENCES " + toSchemaTableName(schema, fk.getTargetTable())
                     + " (" + fk.getTargetColumn() + ") DEFERRABLE INITIALLY DEFERRED";
-                sqlQuery.executeUpdate(queryBuilder);
-            }
-        }
+            sqlQuery.executeUpdate(queryBuilder);
+        });
     }
 
     private void createTable(Schema schema, EntityData entityData, Collection<FieldData> fieldDataList) {
@@ -175,64 +167,46 @@ public final class MappingTool {
         UniqueConstraint[] uniqueConstraints = table.uniqueConstraints();
         for (UniqueConstraint uniqueConstraint : uniqueConstraints) {
             String indexName = getIndexName(tableName, uniqueConstraint.name(), uniqueConstraint.columns(), true);
-            IndexInfo.Builder builder = IndexInfo.create(indexName).on(tableName).unique(true);
-            for (String fieldName : uniqueConstraint.columns()) {
-                FieldData fieldData = entityData.getFieldData(fieldName);
-                if (fieldData == null) {
-                    throw new IllegalArgumentException("invalid column name used in unique constraint on table: "
-                        + tableName + ", field: " + fieldName);
-                }
-                builder.add(fieldData.getColumnName());
-            }
-            entityIndexInfoMap.put(indexName, builder.build());
+            List<String> columnNames = List.of(uniqueConstraint.columns()).stream().map(fieldName ->
+                    entityData.getFieldData(fieldName).getColumnName()).collect(Collectors.toList());
+            entityIndexInfoMap.put(indexName, new IndexInfo(indexName, columnNames, true));
         }
         Index[] indices = entityData.getEntityClass().getDeclaredAnnotationsByType(Index.class);
-        if (indices != null) {
-            for (Index index : indices) {
-                String indexName = getIndexName(tableName, index.name(), index.columns(), false);
-                IndexInfo.Builder builder = IndexInfo.create(indexName).on(tableName);
-                for (String fieldName : index.columns()) {
-                    FieldData fieldData = entityData.getFieldData(fieldName);
-                    if (fieldData == null) {
-                        throw new IllegalArgumentException("invalid column name used in index on table: " + tableName);
-                    }
-                    builder.add(fieldData.getColumnName());
-                }
-                entityIndexInfoMap.put(indexName, builder.build());
-            }
+        for (Index index : indices) {
+            String indexName = getIndexName(tableName, index.name(), index.columns(), false);
+            List<String> columnNames = List.of(index.columns()).stream().map(fieldName ->
+                    entityData.getFieldData(fieldName).getColumnName()).collect(Collectors.toList());
+            entityIndexInfoMap.put(indexName, new IndexInfo(indexName, columnNames));
         }
-        for (FieldData fmd : fieldDataList) {
-            Index index = fmd.getField().getDeclaredAnnotation(Index.class);
+        for (FieldData fieldData : fieldDataList) {
+            Index index = fieldData.getField().getDeclaredAnnotation(Index.class);
             if (index != null) {
-                String indexName = tableName + "_" + fmd.getColumnName() + "_idx";
-                IndexInfo.Builder builder = IndexInfo.create(indexName).on(tableName).add(fmd.getColumnName());
-                entityIndexInfoMap.put(indexName, builder.build());
+                String indexName = tableName + "_" + fieldData.getColumnName() + "_idx";
+                entityIndexInfoMap.put(indexName, new IndexInfo(indexName, List.of(fieldData.getColumnName())));
             }
         }
-        Map<String, IndexInfo.Builder> indexInfoMap = new HashMap<>();
+        Set<String> indexNameSet = new HashSet<>();
         try (ResultSet rs = dbMetaData.getIndexInfo(null, schema.getName(), tableName, false, true)) {
             while (rs.next()) {
                 String indexName = rs.getString("index_name");
-                boolean isNonUnique = rs.getBoolean("NON_UNIQUE");
-                indexInfoMap.computeIfAbsent(indexName, s -> IndexInfo.create(indexName).on(tableName)
-                    .unique(!isNonUnique)).add(rs.getString("column_name"));
+                // boolean isNonUnique = rs.getBoolean("NON_UNIQUE");// String columnName = rs.getString("column_name");
+                indexNameSet.add(indexName);
             }
         }
-        for (Map.Entry<String, IndexInfo> mapEntry : entityIndexInfoMap.entrySet()) {
-            String indexName = mapEntry.getKey();
-            if (!indexInfoMap.containsKey(indexName)) {
-                IndexInfo indexInfo = mapEntry.getValue();
-                if (indexInfo.isUnique()) {
-                    String queryString = "ALTER TABLE " + toSchemaTableName(schema, tableName) + " ADD CONSTRAINT "
-                        + indexName + " UNIQUE (" + String.join(", ", indexInfo.getColumns()) + ')';
-                    sqlQuery.executeUpdate(queryString);
-                } else {
-                    String queryString = "CREATE INDEX " + indexName + " ON " + toSchemaTableName(schema, tableName)
-                        + " (" + String.join(", ", indexInfo.getColumns()) + ')';
-                    sqlQuery.executeUpdate(queryString);
-                }
-            }
+        entityIndexInfoMap.entrySet().stream().filter(entry -> !indexNameSet.contains(entry.getKey()))
+                .forEach(mapEntry -> createIndex(schema, tableName, mapEntry.getValue()));
+    }
+
+    private void createIndex(Schema schema, String tableName, IndexInfo indexInfo) {
+        String queryString;
+        if (indexInfo.isUnique()) {
+            queryString = "ALTER TABLE " + toSchemaTableName(schema, tableName) + " ADD CONSTRAINT "
+                    + indexInfo.getIndexName() + " UNIQUE (" + String.join(", ", indexInfo.getColumns()) + ')';
+        } else {
+            queryString = "CREATE INDEX " + indexInfo.getIndexName() + " ON " + toSchemaTableName(schema, tableName)
+                    + " (" + String.join(", ", indexInfo.getColumns()) + ')';
         }
+        sqlQuery.executeUpdate(queryString);
     }
 
     private String toSchemaTableName(Schema schema, String tableName) {

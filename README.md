@@ -8,7 +8,7 @@ Following are some of its key features:
 
 * Repository configuration using dataSource and schema metadata
 * Entity mapping to database table and fields to columns using annotations
-* Database schema generation with index, foreign keys, constraints, etc using the mapping tool
+* Database schema generation with indexes, foreign keys, constraints, etc using the mapping tool
 * Allows field group definitions per entity to fetch or update only the required data
 * Insert single/list of objects into database in batch and support update on conflict using excluded rows
 * Update single/multiple objects in the database using the specified field group
@@ -22,12 +22,14 @@ Following are some of its key features:
 
 **Todo:**
 
-* Write unit tests
+* Write unit tests using test container
 * More detailed documentation
+* Support readOnly transactions
+* Allow multiple schema definitions per repository
 * Override field name when using field@fgName instead of adding both
 * Finder API - add fetch(String fgName) as a method to reduce the number of overloaded fetch methods
 * MappingTool - create ForeignKey column based on the type of @Id column
-* MappingTool - if existing field metadata is changed, compare with database and show warnings 
+* MappingTool - if existing field metadata is changed, compare with the database and show warnings 
 * Add support for Composite primary key
 * Implement L1 Cache to avoid creating same object multiple times
 * Support more databases (MySQL, H2, HSQLDB, Derby)
@@ -41,12 +43,6 @@ To add a dependency using Maven, use the following:
     <artifactId>pustike-persist</artifactId>
     <version>0.9.2</version>
 </dependency>
-```
-To add a dependency using Gradle:
-```
-dependencies {
-    compile 'io.github.pustike:pustike-persist:0.9.2'
-}
 ```
 Or, download the [latest JAR](https://search.maven.org/remote_content?g=io.github.pustike&a=pustike-persist&v=LATEST)
 

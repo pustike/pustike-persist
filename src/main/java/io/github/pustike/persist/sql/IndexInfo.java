@@ -15,74 +15,37 @@
  */
 package io.github.pustike.persist.sql;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
 final class IndexInfo {
     private final String indexName;
-    private String tableName;
-    private List<String> columns;
-    private boolean unique;
+    private final List<String> columns;
+    private final boolean unique;
 
-    private IndexInfo(String indexName) {
-        this.indexName = Objects.requireNonNull(indexName);
-        this.columns = new ArrayList<>();
+    public IndexInfo(String indexName, List<String> columns) {
+        this(indexName, columns, false);
     }
 
-    static Builder create(String indexName) {
-        return new Builder(indexName);
+    public IndexInfo(String indexName, List<String> columns, boolean unique) {
+        this.indexName = Objects.requireNonNull(indexName);
+        if (columns == null || columns.isEmpty()) {
+            throw new IllegalArgumentException("at least one column should be specified for index: " + indexName);
+        }
+        this.columns = Collections.unmodifiableList(columns);
+        this.unique = unique;
     }
 
     String getIndexName() {
         return indexName;
     }
 
-    String getTableName() {
-        return tableName;
+    List<String> getColumns() {
+        return columns;
     }
 
     boolean isUnique() {
         return unique;
-    }
-
-    List<String> getColumns() {
-        return Collections.unmodifiableList(columns);
-    }
-
-    @Override
-    public String toString() {
-        return String.format("[%s] %s: %s", tableName, indexName, columns);
-    }
-
-    static final class Builder {
-        private final IndexInfo indexInfo;
-
-        private Builder(String indexName) {
-            this.indexInfo = new IndexInfo(indexName);
-        }
-
-        Builder on(String tableName) {
-            indexInfo.tableName = Objects.requireNonNull(tableName);
-            return this;
-        }
-
-        Builder unique(boolean isUnique) {
-            indexInfo.unique = isUnique;
-            return this;
-        }
-
-        Builder add(String column) {
-            indexInfo.columns.add(column);
-            return this;
-        }
-
-        IndexInfo build() {
-            if (indexInfo.columns.size() == 0) {
-                throw new IllegalArgumentException("at least one column should be specified");
-            }
-            return indexInfo;
-        }
     }
 }

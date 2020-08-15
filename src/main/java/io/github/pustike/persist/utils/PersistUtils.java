@@ -17,6 +17,7 @@ package io.github.pustike.persist.utils;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.IntStream;
 
 /**
  * Common Utilities.
@@ -28,9 +29,8 @@ public final class PersistUtils {
     private static final char[] lowerCaseLetters = new char[26];
 
     static {
-        for (int i = 0; i < 26; i++) { // 97 - 122 are lower-case chars
-            lowerCaseLetters[i] = (char) (i + 97);
-        }
+        // 97 - 122 are lower-case chars
+        IntStream.range(0, 26).forEach(i -> lowerCaseLetters[i] = (char) (i + 97));
     }
 
     private PersistUtils() {

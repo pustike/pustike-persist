@@ -15,6 +15,8 @@
  */
 package io.github.pustike.persist.sql;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Objects;
 
 final class ForeignKey {
@@ -30,6 +32,11 @@ final class ForeignKey {
         this.columnName = columnName;
         this.targetTable = targetTable;
         this.targetColumn = targetColumn;
+    }
+
+    ForeignKey(ResultSet rs) throws SQLException {
+        this(rs.getString("FK_NAME"), rs.getString("FKTABLE_NAME"), rs.getString("FKCOLUMN_NAME"),
+                rs.getString("PKTABLE_NAME"), rs.getString("PKCOLUMN_NAME"));
     }
 
     String getName() {

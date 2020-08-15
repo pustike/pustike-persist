@@ -182,11 +182,8 @@ public final class EntityData {
             }
         }
         this.fieldGroupData.put(null, fetchFieldNames);
-        FieldGroup[] fieldGroups = entityClass.getDeclaredAnnotationsByType(FieldGroup.class);
-        if (fieldGroups == null) {
-            return;
-        }
         Map<String, FieldGroup> fieldGroupMap = new LinkedHashMap<>();
+        FieldGroup[] fieldGroups = entityClass.getDeclaredAnnotationsByType(FieldGroup.class);
         for (FieldGroup fieldGroup : fieldGroups) {
             if (fieldGroup.joinFetch()) {
                 if (joinFieldGroup != null) {
