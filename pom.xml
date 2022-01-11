@@ -32,7 +32,7 @@
     <url>https://github.com/pustike/pustike-persist</url>
 
     <properties>
-        <hikaricp.version>5.0.0</hikaricp.version>
+        <hikaricp.version>5.0.1</hikaricp.version>
         <postgresql.version>42.3.0</postgresql.version>
     </properties>
     <dependencies>
