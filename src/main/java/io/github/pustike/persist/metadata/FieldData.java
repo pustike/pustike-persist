@@ -352,21 +352,20 @@ public final class FieldData {
     }
 
     private Object convertToFieldType(Object value, Class<?> fieldType) {
-        if (value instanceof String) {
-            String stringValue = (String) value;
+        if (value instanceof String stringValue) {
             if (fieldType.isEnum()) {
                 value = convertStringToEnum(stringValue, fieldType);
             } else if (fieldType == Character.class) {
-                value = stringValue.length() > 0 ? stringValue.charAt(0) : null;
+                value = !stringValue.isEmpty() ? stringValue.charAt(0) : null;
             }
         }
         return value;
     }
 
     @SuppressWarnings("unchecked")
-    private static <T extends Enum> T convertStringToEnum(String text, Class<?> fieldType) {
+    private static <T extends Enum<?>> T convertStringToEnum(String text, Class<?> fieldType) {
         text = text.trim();
-        if (text.length() == 0) {
+        if (text.isEmpty()) {
             return null;
         }
         Class<?> enumType = fieldType;

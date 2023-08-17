@@ -21,11 +21,11 @@
     <parent>
         <groupId>io.github.pustike</groupId>
         <artifactId>pustike-maven-parent</artifactId>
-        <version>0.1.4</version>
+        <version>0.2.0</version>
     </parent>
 
     <artifactId>pustike-persist</artifactId>
-    <version>0.9.2</version>
+    <version>0.9.4</version>
 
     <name>Pustike Persist</name>
     <description>An object based persistence library</description>

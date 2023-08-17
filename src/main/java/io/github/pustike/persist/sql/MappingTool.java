@@ -21,6 +21,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import io.github.pustike.persist.Index;
 import io.github.pustike.persist.Table;
@@ -115,9 +116,6 @@ public final class MappingTool {
                     String fkName = tableName + "_" + fmd.getColumnName() + "_fkey";
                     String targetClassName = fmd.getFieldType().getName();
                     EntityData targetEntity = schema.getEntityData(targetClassName);
-                    if (targetEntity == null) {
-                        throw new IllegalArgumentException("Foreign key table doesn't exist for: " + targetClassName);
-                    }
                     foreignKeyList.add(new ForeignKey(fkName, tableName, fmd.getColumnName(),
                         targetEntity.getTableName(), targetEntity.getIdField().getColumnName()));
                 }
@@ -167,14 +165,14 @@ public final class MappingTool {
         UniqueConstraint[] uniqueConstraints = table.uniqueConstraints();
         for (UniqueConstraint uniqueConstraint : uniqueConstraints) {
             String indexName = getIndexName(tableName, uniqueConstraint.name(), uniqueConstraint.columns(), true);
-            List<String> columnNames = List.of(uniqueConstraint.columns()).stream().map(fieldName ->
+            List<String> columnNames = Stream.of(uniqueConstraint.columns()).map(fieldName ->
                     entityData.getFieldData(fieldName).getColumnName()).collect(Collectors.toList());
             entityIndexInfoMap.put(indexName, new IndexInfo(indexName, columnNames, true));
         }
         Index[] indices = entityData.getEntityClass().getDeclaredAnnotationsByType(Index.class);
         for (Index index : indices) {
             String indexName = getIndexName(tableName, index.name(), index.columns(), false);
-            List<String> columnNames = List.of(index.columns()).stream().map(fieldName ->
+            List<String> columnNames = Stream.of(index.columns()).map(fieldName ->
                     entityData.getFieldData(fieldName).getColumnName()).collect(Collectors.toList());
             entityIndexInfoMap.put(indexName, new IndexInfo(indexName, columnNames));
         }

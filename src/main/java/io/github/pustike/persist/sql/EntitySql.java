@@ -71,10 +71,7 @@ final class EntitySql {
             parameterCount++;
         }
         queryBuilder.setLength(queryBuilder.length() - 1);// to remove the last comma(,)
-        queryBuilder.append(") values (");
-        for (int i = 0; i < parameterCount; i++) {
-            queryBuilder.append("?,");
-        }
+        queryBuilder.append(") values (").append("?,".repeat(parameterCount));
         queryBuilder.setLength(queryBuilder.length() - 1);// to remove the last comma(,)
         queryBuilder.append(')');
         if (onConflict != null) {
@@ -156,7 +153,7 @@ final class EntitySql {
         if (versionField != null) {
             queryBuilder.append(" AND ").append(versionField.getColumnName()).append(" = ?");
         }
-        logger.log(Level.INFO, queryBuilder.toString());
+        logger.log(Level.DEBUG, queryBuilder.toString());
         try (PreparedStatement stmt = sqlQuery.getConnection().prepareStatement(queryBuilder.toString())) {
             stmt.setObject(1, idField.getValue(entity), idField.getJdbcType());
             if (versionField != null) {
@@ -183,7 +180,7 @@ final class EntitySql {
         if (versionField != null) {
             queryBuilder.append(" AND ").append(versionField.getColumnName()).append(" = ?");
         }
-        logger.log(Level.INFO, queryBuilder.toString());
+        logger.log(Level.DEBUG, queryBuilder.toString());
         final int batchSize = 100, totalCount = entityList.size();
         try (PreparedStatement stmt = sqlQuery.getConnection().prepareStatement(queryBuilder.toString())) {
             for (int idx = 0; idx < totalCount; idx++) {
@@ -209,7 +206,7 @@ final class EntitySql {
             .append(schema.toSchemaTableName(entityData)).append(" WHERE ");
         FieldData idField = entityData.getIdField();
         queryBuilder.append(idField.getColumnName()).append(" = ? FOR UPDATE");
-        logger.log(Level.INFO, queryBuilder.toString());
+        logger.log(Level.DEBUG, queryBuilder.toString());
         try (PreparedStatement stmt = sqlQuery.getConnection().prepareStatement(queryBuilder.toString())) {
             stmt.setObject(1, primaryKey, idField.getJdbcType());
             stmt.execute();
@@ -220,7 +217,7 @@ final class EntitySql {
 
     void execute(Object instance) {
         String[] columnNames = getGeneratedColumns();
-        logger.log(Level.INFO, queryString);
+        logger.log(Level.DEBUG, queryString);
         try (PreparedStatement stmt = sqlQuery.getConnection().prepareStatement(queryString, columnNames)) {
             List<Entry<Integer, Object>> parameterList = getParameters(instance);
             for (int i = 0; i < parameterList.size(); i++) {
@@ -289,7 +286,7 @@ final class EntitySql {
     }
 
     <E> void executeInBatch(List<E> instanceList) {
-        logger.log(Level.INFO, queryString);
+        logger.log(Level.DEBUG, queryString);
         final int batchSize = 100, totalCount = instanceList.size();
         String[] columnNames = getGeneratedColumns();
         try (PreparedStatement stmt = sqlQuery.getConnection().prepareStatement(queryString, columnNames)) {

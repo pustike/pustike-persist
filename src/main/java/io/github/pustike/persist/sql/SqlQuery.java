@@ -282,9 +282,10 @@ public final class SqlQuery {
      * Execute a prepared statement with the given queryString and parameters.
      * @param queryString the sql query to execute
      * @param parameters an array of parameters in the order
+     * @param <T> type of the result data
      * @return the list of resultSet objects
      */
-    public List<?> executeQuery(String queryString, Object... parameters) {
+    public <T> List<T> executeQuery(String queryString, Object... parameters) {
         return executeQuery(queryString, null, parameters);
     }
 
@@ -293,14 +294,20 @@ public final class SqlQuery {
      * @param queryString the sql query to execute
      * @param columnDataTypes data type to use per column
      * @param parameters an array of parameters in the order
+     * @param <T> type of the result data
      * @return the list of resultSet objects
      */
-    public List<?> executeQuery(String queryString, Map<Integer, Class<?>> columnDataTypes, Object... parameters) {
-        logger.log(Level.INFO, queryString);
+    @SuppressWarnings("unchecked")
+    public <T> List<T> executeQuery(String queryString, Map<Integer, Class<?>> columnDataTypes, Object... parameters) {
+        logger.log(Level.DEBUG, queryString);
         try (PreparedStatement stmt = connection.prepareStatement(queryString)) {
             if (parameters != null) {
                 for (int i = 0; i < parameters.length; i++) {
-                    stmt.setObject(i + 1, parameters[i]);
+                    Object parameter = parameters[i];
+                    if (parameter instanceof Enum<?>) {
+                        parameter = parameter.toString();
+                    }
+                    stmt.setObject(i + 1, parameter);
                 }
             }
             try (ResultSet resultSet = stmt.executeQuery()) {
@@ -312,19 +319,21 @@ public final class SqlQuery {
                             : resultSet.getObject(1, columnDataTypes.get(1)));
                     } else {
                         Object[] resultData = new Object[columnCount];
-                        for (int i = 0; i < columnCount; i++) {
-                            resultData[i] = columnDataTypes == null ? resultSet.getObject(i + 1)
-                                : resultSet.getObject(i + 1, columnDataTypes.get(i + 1));
+                        for (int idx = 0; idx < columnCount; idx++) {
+                            Class<?> fieldDataType = columnDataTypes != null ? columnDataTypes.get(idx + 1) : null;
+                            resultData[idx] = fieldDataType == null ? resultSet.getObject(idx + 1)
+                                : resultSet.getObject(idx + 1, fieldDataType);
                         }
                         resultDataList.add(resultData);
                     }
                 }
-                return Collections.unmodifiableList(resultDataList);
+                return (List<T>) Collections.unmodifiableList(resultDataList);
             }
         } catch (SQLException e) {
             throw new RuntimeException("Couldn't execute query", e);
         }
     }
+
     /**
      * Execute a prepared statement with the given queryString and parameters.
      * @param queryString the sql query to execute
@@ -332,16 +341,69 @@ public final class SqlQuery {
      * @return the updated row count
      */
     public int executeUpdate(String queryString, Object... parameters) {
-        logger.log(Level.INFO, queryString);
+        logger.log(Level.DEBUG, queryString);
         try (PreparedStatement stmt = connection.prepareStatement(queryString)) {
             if (parameters != null) {
                 for (int i = 0; i < parameters.length; i++) {
-                    stmt.setObject(i + 1, parameters[i]);
+                    Object parameter = parameters[i];
+                    if (parameter instanceof Enum<?>) {
+                        parameter = parameter.toString();
+                    }
+                    stmt.setObject(i + 1, parameter);
                 }
             }
             return stmt.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException("Couldn't execute query", e);
         }
+    }
+
+    /**
+     * Execute a {@code UNION ALL} of finders provided with select clause,
+     * by adding a prefix and suffix to the final query.
+     * @param prefix the actual select prefix part
+     * @param finderSelectMap the map containing finders and their select clause
+     * @param suffix the suffix added after combining all finder queries
+     * @param <T> type of the result data
+     * @return the list of resultSet objects
+     * @see #executeQuery(String, Object...)
+     */
+    public <T> List<T> executeUnionQuery(String prefix, Map<Finder<?>, String> finderSelectMap, String suffix) {
+        return executeUnionQuery(prefix, finderSelectMap, suffix, null);
+    }
+
+    /**
+     * Execute a {@code UNION ALL} of finders provided with select clause,
+     * by adding a prefix and suffix to the final query.
+     * @param prefix the actual select prefix part
+     * @param finderSelectMap the map containing finders and their select clause
+     * @param suffix the suffix added after combining all finder queries
+     * @param columnDataTypes data type to use per column
+     * @param <T> type of the result data
+     * @return the list of resultSet objects
+     * @see #executeQuery(String, Object...)
+     */
+    public <T> List<T> executeUnionQuery(String prefix, Map<Finder<?>, String> finderSelectMap, String suffix,
+                                         Map<Integer, Class<?>> columnDataTypes) {
+        StringBuilder queryBuilder = new StringBuilder(prefix);
+        List<Object> parameterList = new ArrayList<>();
+        for (Map.Entry<Finder<?>, String> mapEntry : finderSelectMap.entrySet()) {
+            Finder<?> finder = mapEntry.getKey();
+            parameterList.addAll(finder.getParameterList());
+            queryBuilder.append(" (").append(finder.buildInnerQueryString(mapEntry.getValue())).append(") ");
+            queryBuilder.append("union all");
+        }
+        queryBuilder.setLength(queryBuilder.length() - "union all".length());
+        return executeQuery(queryBuilder.append(suffix).toString(), columnDataTypes,
+                parameterList.toArray(new Object[0]));
+    }
+
+    /**
+     * Utility method to get schema.table_name of the given entity class.
+     * @param entityClass the entity class
+     * @return the table name with schema like: schema.table_name
+     */
+    public String getTableName(Class<?> entityClass) {
+        return schema.toSchemaTableName(schema.getEntityData(entityClass));
     }
 }

@@ -16,7 +16,7 @@ Following are some of its key features:
 * Delete single/multiple objects
 * A fluent Finder API to construct sql queries and fetch result data as objects 
 * Supported databases: PostgreSQL
-* Requires Java 11 and has no external dependencies (~60kB in size)
+* Requires Java 17 and has no external dependencies (~70kB in size)
 
 **Documentation:** Latest javadocs is available [here][Javadocs].
 
@@ -41,7 +41,7 @@ To add a dependency using Maven, use the following:
 <dependency>
     <groupId>io.github.pustike</groupId>
     <artifactId>pustike-persist</artifactId>
-    <version>0.9.2</version>
+    <version>0.9.4</version>
 </dependency>
 ```
 Or, download the [latest JAR](https://search.maven.org/remote_content?g=io.github.pustike&a=pustike-persist&v=LATEST)

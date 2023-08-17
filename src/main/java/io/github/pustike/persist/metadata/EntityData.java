@@ -246,4 +246,13 @@ public final class EntityData {
         }
         return fieldGroupFields;
     }
+
+    /**
+     * Create an instance of the entity class using default constructor.
+     * @return a new entityClass instance
+     * @throws Exception if the new instance can not be created
+     */
+    public Object createInstance() throws Exception {
+        return entityClass.getDeclaredConstructor().newInstance();
+    }
 }

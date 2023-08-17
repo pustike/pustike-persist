@@ -34,6 +34,7 @@ import io.github.pustike.persist.utils.PersistUtils;
 
 /**
  * The data finder api.
+ * @param <E> type of the entity
  */
 public final class Finder<E> {
     private static final Logger logger = System.getLogger(Finder.class.getName());
@@ -107,6 +108,22 @@ public final class Finder<E> {
         return this;
     }
 
+    /**
+     * Join the table of data class on given conditional clause.
+     * @param dataClass the data class to join
+     * @param alias the new alias for this join
+     * @param useOuterJoin  {@code true} to use outer join else uses inner join
+     * @param onCondition the conditional clause
+     * @return this finder instance
+     */
+    public Finder<E> join(Class<?> dataClass, String alias, boolean useOuterJoin, String onCondition) {
+        String joinString = (useOuterJoin ? " left outer join " : " inner join ") +
+                sqlQuery.getTableName(dataClass) + " as " + alias + " on " + onCondition;
+        joinClause.append(joinString);
+        aliasEntityDataMap.put(alias, sqlQuery.getSchema().getEntityData(dataClass));
+        return this;
+    }
+
     private FieldData toFieldData(String fieldName, String fromAlias) {
         EntityData entityData = aliasEntityDataMap.get(fromAlias);
         if (entityData == null) {
@@ -162,7 +179,7 @@ public final class Finder<E> {
                     alias = aliasBuilder.toString();
                     aliasBuilder.setLength(0);
                 } else {
-                    if (aliasBuilder.length() > 0) {
+                    if (!aliasBuilder.isEmpty()) {
                         queryBuilder.append(aliasBuilder);
                         aliasBuilder.setLength(0);
                     }
@@ -172,7 +189,7 @@ public final class Finder<E> {
                 if (Character.isLetterOrDigit(c)) {
                     fieldBuilder.append(c);
                 } else {
-                    if (fieldBuilder.length() > 0) {
+                    if (!fieldBuilder.isEmpty()) {
                         FieldData fieldData = toFieldData(fieldBuilder.toString(), alias);
                         queryBuilder.append(alias).append('.').append(fieldData.getColumnName());
                         fieldBuilder.setLength(0);
@@ -182,10 +199,10 @@ public final class Finder<E> {
                 }
             }
         }
-        if (alias != null && fieldBuilder.length() > 0) {
+        if (alias != null && !fieldBuilder.isEmpty()) {
             FieldData fieldData = toFieldData(fieldBuilder.toString(), alias);
             queryBuilder.append(alias).append('.').append(fieldData.getColumnName());
-        } else if (aliasBuilder.length() > 0) {
+        } else if (!aliasBuilder.isEmpty()) {
             queryBuilder.append(aliasBuilder);
         }
         return queryBuilder.toString();
@@ -234,19 +251,32 @@ public final class Finder<E> {
         StringBuilder inClause = new StringBuilder(toSqlString(queryString)).append('(');
         inClause.append(finder.buildInnerQueryString(selectClause));
         getWhereClause().append(inClause.append(')'));
-        parameterList.addAll(finder.parameterList);
+        parameterList.addAll(finder.getParameterList());
         return this;
     }
 
-    private String buildInnerQueryString(String selectClause) {
+    /**
+     * Add the parameter at given index; useful when passing parameters in select clause.
+     * @param index the parameter index
+     * @param parameter the parameter value
+     */
+    public void addParameter(int index, Object parameter) {
+        parameterList.add(index, parameter);
+    }
+
+    String buildInnerQueryString(String selectClause) {
         return toString("select ", toSqlString(selectClause), getFromClause(), joinClause, whereClause, groupBy);
+    }
+
+    List<Object> getParameterList() {
+        return parameterList;
     }
 
     private String toString(CharSequence... builders) {
         StringBuilder queryBuilder = new StringBuilder();
         // Arrays.stream(builders).filter(Objects::nonNull).forEach(queryBuilder::append);
         for (CharSequence builder : builders) {
-            if (builder != null && builder.length() > 0) {
+            if (builder != null && !builder.isEmpty()) {
                 queryBuilder.append(builder);
             }
         }
@@ -363,7 +393,7 @@ public final class Finder<E> {
         if (forUpdate) {
             queryString = queryString + " for update of " + alias;
         }
-        logger.log(Level.INFO, queryString);
+        logger.log(Level.DEBUG, queryString);
         try (PreparedStatement stmt = sqlQuery.getConnection().prepareStatement(queryString)) {
             setParameters(stmt);
             try (ResultSet resultSet = stmt.executeQuery()) {
@@ -455,7 +485,7 @@ public final class Finder<E> {
                         Object value = resultType == null ? resultSet.getObject(index++)
                             : resultSet.getObject(index++, resultType);
                         if (value != null && fkInstance == null) {
-                            fkInstance = fkEntityData.getEntityClass().getDeclaredConstructor().newInstance();
+                            fkInstance = fkEntityData.createInstance();
                         }
                         if (fkInstance != null) {
                             fkFieldData.setValue(fkInstance, value);
@@ -468,7 +498,7 @@ public final class Finder<E> {
                         Object value = resultType == null ? resultSet.getObject(index++)
                             : resultSet.getObject(index++, resultType);
                         if (value != null) {
-                            Object fkInstance2 = fkEntityData2.getEntityClass().getDeclaredConstructor().newInstance();
+                            Object fkInstance2 = fkEntityData2.createInstance();
                             fkIdField2.setValue(fkInstance2, value);
                             fkFieldData.setValue(fkInstance, fkInstance2);
                         }
@@ -558,6 +588,18 @@ public final class Finder<E> {
     /**
      * Fetch the aggregate query result data.
      * @param selectClause the select clause to apply
+     * @param columnDataTypes data type to use per column
+     * @param <T> the type of result data
+     * @return the single result from the query
+     */
+    public <T> T fetchSingleResult(String selectClause, Map<Integer, Class<?>> columnDataTypes) {
+        List<T> resultDataList = doFetchResults(null, selectClause, -1, 1, columnDataTypes, null);
+        return resultDataList.isEmpty() ? null : resultDataList.get(0);
+    }
+
+    /**
+     * Fetch the aggregate query result data.
+     * @param selectClause the select clause to apply
      * @param queryModifier the function to be called before the query is executed
      * @param <T> the type of result data
      * @return the single result from the query
@@ -578,7 +620,7 @@ public final class Finder<E> {
         if (queryModifier != null) {
             queryString = queryModifier.apply(queryString);
         }
-        logger.log(Level.INFO, queryString);
+        logger.log(Level.DEBUG, queryString);
         try (PreparedStatement stmt = sqlQuery.getConnection().prepareStatement(queryString)) {
             setParameters(stmt);
             List<T> resultDataList = new ArrayList<>();
@@ -688,7 +730,7 @@ public final class Finder<E> {
      */
     public int delete() {
         String queryString = "delete" + toString(getFromClause(), joinClause, whereClause);
-        logger.log(Level.INFO, queryString);
+        logger.log(Level.DEBUG, queryString);
         try (PreparedStatement stmt = sqlQuery.getConnection().prepareStatement(queryString)) {
             setParameters(stmt);
             return stmt.executeUpdate();

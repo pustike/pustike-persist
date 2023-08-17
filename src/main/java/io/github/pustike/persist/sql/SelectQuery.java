@@ -53,7 +53,7 @@ final class SelectQuery {
         if (forUpdate) {
             queryString = queryString + " for update of " + alias;
         }
-        logger.log(Level.INFO, queryString);
+        logger.log(Level.DEBUG, queryString);
         try (PreparedStatement stmt = sqlQuery.getConnection().prepareStatement(queryString)) {
             stmt.setObject(1, primaryKey);
             try (ResultSet resultSet = stmt.executeQuery()) {
@@ -134,7 +134,7 @@ final class SelectQuery {
                         Object value = resultType == null ? resultSet.getObject(index++)
                             : resultSet.getObject(index++, resultType);
                         if (value != null && fkInstance == null) {
-                            fkInstance = fkEntityData.getEntityClass().getDeclaredConstructor().newInstance();
+                            fkInstance = fkEntityData.createInstance();
                         }
                         if (fkInstance != null) {
                             fkFieldData.setValue(fkInstance, value);
@@ -147,7 +147,7 @@ final class SelectQuery {
                         Object value = resultType == null ? resultSet.getObject(index++)
                             : resultSet.getObject(index++, resultType);
                         if (value != null) {
-                            Object fkInstance2 = fkEntityData2.getEntityClass().getDeclaredConstructor().newInstance();
+                            Object fkInstance2 = fkEntityData2.createInstance();
                             fkIdField2.setValue(fkInstance2, value);
                             fkFieldData.setValue(fkInstance, fkInstance2);
                         }
