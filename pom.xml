@@ -33,7 +33,7 @@
 
     <properties>
         <hikaricp.version>6.2.1</hikaricp.version>
-        <postgresql.version>42.7.4</postgresql.version>
+        <postgresql.version>42.7.5</postgresql.version>
     </properties>
     <dependencies>
         <dependency>
