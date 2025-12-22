@@ -41,7 +41,7 @@ To add a dependency using Maven, use the following:
 <dependency>
     <groupId>io.github.pustike</groupId>
     <artifactId>pustike-persist</artifactId>
-    <version>0.9.4</version>
+    <version>0.9.5</version>
 </dependency>
 ```
 Or, download the [latest JAR](https://search.maven.org/remote_content?g=io.github.pustike&a=pustike-persist&v=LATEST)

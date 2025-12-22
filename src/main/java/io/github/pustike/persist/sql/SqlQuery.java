@@ -335,6 +335,17 @@ public final class SqlQuery {
     }
 
     /**
+     * Execute update query on entity class with the given queryString and parameters.
+     * @param entityClass the entity class
+     * @param queryString the sql query to execute
+     * @param parameters an array of parameters in the order
+     * @return the updated row count
+     */
+    public int executeUpdate(Class<?> entityClass, String queryString, Object... parameters) {
+        return executeUpdate("update " + getTableName(entityClass) + ' ' + queryString, parameters);
+    }
+
+    /**
      * Execute a prepared statement with the given queryString and parameters.
      * @param queryString the sql query to execute
      * @param parameters an array of parameters in the order

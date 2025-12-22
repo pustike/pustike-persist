@@ -197,12 +197,12 @@ public final class MappingTool {
 
     private void createIndex(Schema schema, String tableName, IndexInfo indexInfo) {
         String queryString;
-        if (indexInfo.isUnique()) {
+        if (indexInfo.unique()) {
             queryString = "ALTER TABLE " + toSchemaTableName(schema, tableName) + " ADD CONSTRAINT "
-                    + indexInfo.getIndexName() + " UNIQUE (" + String.join(", ", indexInfo.getColumns()) + ')';
+                    + indexInfo.indexName() + " UNIQUE (" + String.join(", ", indexInfo.columns()) + ')';
         } else {
-            queryString = "CREATE INDEX " + indexInfo.getIndexName() + " ON " + toSchemaTableName(schema, tableName)
-                    + " (" + String.join(", ", indexInfo.getColumns()) + ')';
+            queryString = "CREATE INDEX " + indexInfo.indexName() + " ON " + toSchemaTableName(schema, tableName)
+                    + " (" + String.join(", ", indexInfo.columns()) + ')';
         }
         sqlQuery.executeUpdate(queryString);
     }
@@ -219,5 +219,20 @@ public final class MappingTool {
             name = PersistUtils.hashCodeToString(hashCode) + (unique ? "_key" : "_idx"); // _key for unique
         }
         return tableName + "_" + name;
+    }
+
+    private record IndexInfo(String indexName, List<String> columns, boolean unique) {
+        public IndexInfo(String indexName, List<String> columns) {
+            this(indexName, columns, false);
+        }
+
+        private IndexInfo(String indexName, List<String> columns, boolean unique) {
+            this.indexName = Objects.requireNonNull(indexName);
+            if (columns == null || columns.isEmpty()) {
+                throw new IllegalArgumentException("at least one column should be specified for index: " + indexName);
+            }
+            this.columns = Collections.unmodifiableList(columns);
+            this.unique = unique;
+        }
     }
 }
