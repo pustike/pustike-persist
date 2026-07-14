@@ -33,6 +33,7 @@ import io.github.pustike.persist.FieldGroup;
 public final class EntityData {
     private final Class<?> entityClass;
     private final String tableName;
+    private final boolean viewType;
     private final Set<FieldData> declaredFieldData;
     private Map<String, FieldData> fieldDataMap;
     private EntityData parentEntity;
@@ -40,9 +41,10 @@ public final class EntityData {
     private String joinFieldGroup;
     private Map<String, Set<String>> fieldGroupData;
 
-    EntityData(Class<?> entityClass, String tableName) {
+    EntityData(Class<?> entityClass, String tableName, boolean viewType) {
         this.entityClass = entityClass;
         this.tableName = tableName;
+        this.viewType = viewType;
         this.declaredFieldData = new LinkedHashSet<>();
     }
 
@@ -56,7 +58,7 @@ public final class EntityData {
 
     /**
      * Get the table name for this entity. It can be {@code null} if this is a super class.
-     * @see #isSuperClass()
+     * @see #hasTableName()
      * @return the name of the table
      */
     public String getTableName() {
@@ -171,6 +173,14 @@ public final class EntityData {
      */
     public boolean isSuperClass() {
         return tableName == null;
+    }
+
+    /**
+     * Check if this entity metadata is for a view.
+     * @return true if this metadata is for a view
+     */
+    public boolean isViewType() {
+        return viewType;
     }
 
     private void readFieldGroupData() {

@@ -57,6 +57,11 @@ public enum ColumnType {
     Lob,
 
     /**
+     * {@link String} type of fields mapped to {@code JSONB} column types.
+     */
+    Json,
+
+    /**
      * Fields of other entity type created with a foreign key constraint and as {@code bigint}
      */
     ForeignKey,

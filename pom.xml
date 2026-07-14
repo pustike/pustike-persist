@@ -25,7 +25,7 @@
     </parent>
 
     <artifactId>pustike-persist</artifactId>
-    <version>0.9.5</version>
+    <version>0.9.6</version>
 
     <name>Pustike Persist</name>
     <description>An object based persistence library</description>

@@ -149,6 +149,8 @@ public final class FieldData {
         } else if (String.class == fieldType) {
             if (columnType == ColumnType.Lob) {
                 return "text";
+            } else if (columnType == ColumnType.Json) {
+                return "jsonb";
             }
             return "varchar(" + getLength() + ")";
         } else if (byte[].class == fieldType || Byte[].class == fieldType) {
@@ -224,6 +226,10 @@ public final class FieldData {
             if (!lobClassList.contains(type)) {//
                 throw new IllegalStateException("invalid type used for the @Lob column: " + field);
             }
+        } else if (getColumnType() == ColumnType.Json) {
+            if (String.class != type) {//
+                throw new IllegalStateException("invalid type used for the @Json column: " + field);
+            }
         } else if (getColumnType() == null) {
             if (byte[].class.isAssignableFrom(type) || Byte[].class.isAssignableFrom(type)) {
                 setColumnType(ColumnType.Lob);
@@ -283,6 +289,8 @@ public final class FieldData {
         } else if (String.class == fieldType) {
             if (columnType == ColumnType.Lob) {
                 setJdbcType(Types.LONGVARCHAR);
+            } else if (columnType == ColumnType.Json) {
+                setJdbcType(Types.OTHER);
             } else {
                 setJdbcType(Types.VARCHAR);
             }

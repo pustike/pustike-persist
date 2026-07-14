@@ -233,7 +233,7 @@ public final class Finder<E> {
             throw new IllegalArgumentException("IN parameters can not be empty!");
         }
         StringBuilder inClause = new StringBuilder(toSqlString(queryString)).append('(');
-        inClause.append("?,".repeat(valueList.size())).setLength(inClause.length() - 1);
+        inClause.repeat("?,", valueList.size()).setLength(inClause.length() - 1);
         getWhereClause().append(inClause.append(')'));
         parameterList.addAll(valueList);
         return this;
@@ -377,7 +377,7 @@ public final class Finder<E> {
      */
     public E fetchFirst(String fieldGroup) {
         List<E> resultDataList = fetch(alias, fieldGroup, -1, 1, false);
-        return resultDataList.isEmpty() ? null : resultDataList.get(0);
+        return resultDataList.isEmpty() ? null : resultDataList.getFirst();
     }
 
     private <V> List<V> fetch(String alias, String fieldGroup, int offset, int limit, boolean forUpdate) {
@@ -506,9 +506,15 @@ public final class Finder<E> {
                 }
                 fieldData.setValue(instance, fkInstance);
             } else {
-                Class<?> resultType = fieldData.getResultType();
-                fieldData.setValue(instance, resultType == null ? resultSet.getObject(index++)
-                    : resultSet.getObject(index++, resultType));
+                Object resultObject;
+                if (fieldData.getColumnType() == ColumnType.Json) {
+                    resultObject = resultSet.getString(index++);
+                } else {
+                    Class<?> resultType = fieldData.getResultType();
+                    resultObject = resultType == null ? resultSet.getObject(index++)
+                            : resultSet.getObject(index++, resultType);
+                }
+                fieldData.setValue(instance, resultObject);
             }
         }
         return instance;
@@ -529,7 +535,7 @@ public final class Finder<E> {
      */
     public E fetchFirstForUpdate(String fieldGroup) {
         List<E> resultDataList = fetch(alias, fieldGroup, -1, 1, true);
-        return resultDataList.isEmpty() ? null : resultDataList.get(0);
+        return resultDataList.isEmpty() ? null : resultDataList.getFirst();
     }
 
     /**
@@ -582,7 +588,7 @@ public final class Finder<E> {
      */
     public <T> T fetchSingleResult(String selectClause) {
         List<T> resultDataList = doFetchResults(null, selectClause, -1, 1, null, null);
-        return resultDataList.isEmpty() ? null : resultDataList.get(0);
+        return resultDataList.isEmpty() ? null : resultDataList.getFirst();
     }
 
     /**
@@ -594,7 +600,7 @@ public final class Finder<E> {
      */
     public <T> T fetchSingleResult(String selectClause, Map<Integer, Class<?>> columnDataTypes) {
         List<T> resultDataList = doFetchResults(null, selectClause, -1, 1, columnDataTypes, null);
-        return resultDataList.isEmpty() ? null : resultDataList.get(0);
+        return resultDataList.isEmpty() ? null : resultDataList.getFirst();
     }
 
     /**
@@ -606,7 +612,7 @@ public final class Finder<E> {
      */
     public <T> T fetchSingleResult(String selectClause, Function<String, String> queryModifier) {
         List<T> resultDataList = doFetchResults(null, selectClause, -1, -1, null, queryModifier);
-        return resultDataList.isEmpty() ? null : resultDataList.get(0);
+        return resultDataList.isEmpty() ? null : resultDataList.getFirst();
     }
 
     @SuppressWarnings("unchecked")
@@ -683,7 +689,7 @@ public final class Finder<E> {
      */
     public <T> T fetchSingleResult(Class<T> resultType, String selectClause) {
         List<T> resultDataList = doFetchResults(resultType, selectClause, -1, 1, null, null);
-        return resultDataList.isEmpty() ? null : resultDataList.get(0);
+        return resultDataList.isEmpty() ? null : resultDataList.getFirst();
     }
 
     /**
@@ -781,7 +787,7 @@ public final class Finder<E> {
          */
         public V fetchFirst(String fieldGroup) {
             List<V> resultDataList = finder.fetch(alias, fieldGroup, -1, 1, false);
-            return resultDataList.isEmpty() ? null : resultDataList.get(0);
+            return resultDataList.isEmpty() ? null : resultDataList.getFirst();
         }
 
         /**
@@ -799,7 +805,7 @@ public final class Finder<E> {
          */
         public V fetchFirstForUpdate(String fieldGroup) {
             List<V> resultDataList = finder.fetch(alias, fieldGroup, -1, 1, true);
-            return resultDataList.isEmpty() ? null : resultDataList.get(0);
+            return resultDataList.isEmpty() ? null : resultDataList.getFirst();
         }
 
         /**

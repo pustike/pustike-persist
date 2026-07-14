@@ -21,18 +21,11 @@ import java.lang.reflect.Modifier;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 
-import io.github.pustike.persist.Column;
-import io.github.pustike.persist.EntityListener;
-import io.github.pustike.persist.Id;
-import io.github.pustike.persist.Lob;
-import io.github.pustike.persist.Table;
-import io.github.pustike.persist.Version;
+import io.github.pustike.persist.*;
 import io.github.pustike.persist.utils.PersistUtils;
 
 /**
@@ -113,14 +106,14 @@ public final class Schema {
         return entityData;
     }
 
-    private void registerEntity(Class<?> entityClass) {
-        EntityData entityData = createEntityData(entityClass);
+    private void registerEntity(Class<?> entityClass, boolean isViewType) {
+        EntityData entityData = createEntityData(entityClass, isViewType);
         Class<?> superClass = entityClass.getSuperclass();
         EntityData currentEntityData = entityData;
         while (superClass != null && superClass != Object.class) {
             EntityData parentEntity = entityDataMap.get(superClass.getName());
             if (parentEntity == null) {
-                parentEntity = createEntityData(superClass);
+                parentEntity = createEntityData(superClass, isViewType);
                 entityDataMap.put(superClass.getName(), parentEntity);
             }
             currentEntityData.setParentEntity(parentEntity);
@@ -130,7 +123,7 @@ public final class Schema {
         entityDataMap.put(entityClass.getName(), entityData);
     }
 
-    private EntityData createEntityData(Class<?> entityClass) {
+    private EntityData createEntityData(Class<?> entityClass, boolean isViewType) {
         String tableName = null;
         if (!Modifier.isAbstract(entityClass.getModifiers())) {
             Table table = entityClass.getDeclaredAnnotation(Table.class);
@@ -139,7 +132,7 @@ public final class Schema {
             }
             tableName = PersistUtils.getSqlName(entityClass.getSimpleName(), table.name());
         }
-        return new EntityData(entityClass, tableName);
+        return new EntityData(entityClass, tableName, isViewType);
     }
 
     private void configureMetadata() {
@@ -169,6 +162,8 @@ public final class Schema {
                 fieldData.setOptional(false);
             } else if (annotation.annotationType().equals(Lob.class)) {
                 fieldData.setColumnType(ColumnType.Lob);
+            } else if (annotation.annotationType().equals(Json.class)) {
+                fieldData.setColumnType(ColumnType.Json);
             }
         }
         // NOTE: should be called after @Column annotation has been read!
@@ -184,11 +179,11 @@ public final class Schema {
      */
     public static final class Builder {
         private String name;
-        private Set<Class<?>> entitySet;
+        private Map<Class<?>, Boolean> entityMap;
         private EntityListener listener;
 
         Builder() {
-            this.entitySet = new LinkedHashSet<>();
+            this.entityMap = new LinkedHashMap<>();
         }
 
         /**
@@ -211,7 +206,20 @@ public final class Schema {
          */
         public Builder add(Class<?> entityClass) {
             Objects.requireNonNull(entityClass);
-            if (!entitySet.add(entityClass)) {
+            if (entityMap.put(entityClass, false) != null) {
+                throw new IllegalArgumentException("This entity is already added: " + entityClass);
+            }
+            return this;
+        }
+
+        /**
+         * Add an entity class mapped to a view in this schema.
+         * @param entityClass the entity class
+         * @return this builder instance
+         */
+        public Builder addView(Class<?> entityClass) {
+            Objects.requireNonNull(entityClass);
+            if (entityMap.put(entityClass, true) != null) {
                 throw new IllegalArgumentException("This entity is already added: " + entityClass);
             }
             return this;
@@ -232,15 +240,13 @@ public final class Schema {
          * @return the schema instance
          */
         public Schema build() {
-            if (entitySet.isEmpty()) {
+            if (entityMap.isEmpty()) {
                 throw new IllegalStateException("This schema doesn't contain any entity!");
             }
             Schema schema = new Schema(name, listener);
-            for (Class<?> entityClass : entitySet) {
-                schema.registerEntity(entityClass);
-            }
+            entityMap.forEach(schema::registerEntity);
             schema.configureMetadata();
-            entitySet.clear();
+            entityMap.clear();
             return schema;
         }
     }

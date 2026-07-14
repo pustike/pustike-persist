@@ -110,7 +110,7 @@ public final class SqlQuery {
         if (entityList.isEmpty()) {
             return;
         }
-        Class<?> entityClass = entityList.get(0).getClass();
+        Class<?> entityClass = entityList.getFirst().getClass();
         EntitySql.insert(this, entityClass).executeInBatch(entityList);
     }
 
@@ -125,7 +125,7 @@ public final class SqlQuery {
         if (entityList.isEmpty()) {
             return;
         }
-        Class<?> entityClass = entityList.get(0).getClass();
+        Class<?> entityClass = entityList.getFirst().getClass();
         EntitySql.insert(this, entityClass, onConflict, updateClause).executeInBatch(entityList);
     }
 
@@ -152,7 +152,7 @@ public final class SqlQuery {
         if (entityList.isEmpty()) {
             return;
         }
-        Class<?> entityClass = entityList.get(0).getClass();
+        Class<?> entityClass = entityList.getFirst().getClass();
         EntitySql entitySql = EntitySql.update(this, entityClass, fieldGroup);
         if (entitySql != null) {
             entitySql.executeInBatch(entityList);

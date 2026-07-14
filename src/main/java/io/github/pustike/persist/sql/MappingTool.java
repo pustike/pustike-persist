@@ -89,7 +89,7 @@ public final class MappingTool {
         }
         List<ForeignKey> foreignKeyList = new ArrayList<>();
         for (EntityData entityData : schema.getEntityData()) {
-            if (entityData.isSuperClass()) {
+            if (entityData.isSuperClass() || entityData.isViewType()) {
                 continue;// this is an abstract/mapped super class!
             }
             final String tableName = entityData.getTableName();

@@ -71,7 +71,7 @@ final class EntitySql {
             parameterCount++;
         }
         queryBuilder.setLength(queryBuilder.length() - 1);// to remove the last comma(,)
-        queryBuilder.append(") values (").append("?,".repeat(parameterCount));
+        queryBuilder.append(") values (").repeat("?,", parameterCount);
         queryBuilder.setLength(queryBuilder.length() - 1);// to remove the last comma(,)
         queryBuilder.append(')');
         if (onConflict != null) {
@@ -170,7 +170,7 @@ final class EntitySql {
             return;
         }
         Schema schema = sqlQuery.getSchema();
-        Class<?> entityClass = entityList.get(0).getClass();
+        Class<?> entityClass = entityList.getFirst().getClass();
         EntityData entityData = schema.getEntityData(entityClass);
         StringBuilder queryBuilder = new StringBuilder("DELETE FROM ")
             .append(schema.toSchemaTableName(entityData)).append(" WHERE ");
@@ -226,7 +226,7 @@ final class EntitySql {
             }
             int updateCount = stmt.executeUpdate();
             if (updateCount <= 0) {
-                return;// TODO should it throw exception here on update?
+                return;
             }
             try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
                 while (generatedKeys.next()) {
